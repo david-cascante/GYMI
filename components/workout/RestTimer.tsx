@@ -8,9 +8,10 @@ import { useSettings } from '@/contexts/SettingsContext';
 
 interface RestTimerProps {
   onComplete?: () => void;
+  compact?: boolean;
 }
 
-export function RestTimer({ onComplete }: RestTimerProps) {
+export function RestTimer({ onComplete, compact = false }: RestTimerProps) {
   const colors = useThemeColors();
   const { defaultRestSeconds } = useSettings();
   const [expanded, setExpanded] = useState(false);
@@ -71,18 +72,34 @@ export function RestTimer({ onComplete }: RestTimerProps) {
   if (!expanded) {
     return (
       <Pressable
-        style={[styles.collapsed, { backgroundColor: colors.surfaceElevated }]}
+        style={[
+          styles.collapsed,
+          compact && styles.collapsedCompact,
+          { backgroundColor: colors.surfaceElevated },
+        ]}
         onPress={() => setExpanded(true)}>
-        <Ionicons name="timer-outline" size={24} color={colors.primary} />
-        <Text style={[styles.collapsedText, { color: colors.text }]}>
-          {running ? formatTime(remaining) : 'Temporizador'}
-        </Text>
+        <Ionicons name="timer-outline" size={compact ? 20 : 24} color={colors.primary} />
+        {!compact && (
+          <Text style={[styles.collapsedText, { color: colors.text }]}>
+            {running ? formatTime(remaining) : 'Temporizador'}
+          </Text>
+        )}
+        {compact && running && (
+          <Text style={[styles.compactTime, { color: colors.primary }]}>
+            {formatTime(remaining)}
+          </Text>
+        )}
       </Pressable>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.container,
+        compact && styles.containerCompact,
+        { backgroundColor: colors.surfaceElevated, borderColor: colors.border },
+      ]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Descanso</Text>
         <Pressable onPress={() => setExpanded(false)}>
@@ -150,9 +167,20 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
+  collapsedCompact: {
+    marginHorizontal: 0,
+    marginBottom: 0,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    gap: 4,
+  },
   collapsedText: {
     fontSize: fontSize.md,
     fontWeight: '600',
+  },
+  compactTime: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
   },
   container: {
     marginHorizontal: spacing.md,
@@ -160,6 +188,20 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: radius.lg,
     borderWidth: 1,
+  },
+  containerCompact: {
+    position: 'absolute',
+    top: 56,
+    right: spacing.md,
+    left: spacing.md,
+    zIndex: 10,
+    marginHorizontal: 0,
+    marginBottom: 0,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   header: {
     flexDirection: 'row',

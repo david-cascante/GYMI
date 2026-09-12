@@ -20,15 +20,24 @@ import {
   updateSessionNotes,
 } from '@/repositories/workoutRepository';
 import { detectNewPRs } from '@/services/progressService';
-import { formatWeightReps } from '@/services/weightService';
-import type { SessionWithDetails, ExerciseSession, LastExercisePerformance, NewPR, WeightUnit } from '@/types/entities';
+import type {
+  SessionWithDetails,
+  ExerciseSession,
+  LastExercisePerformance,
+  NewPR,
+  WeightUnit,
+} from '@/types/entities';
 import { useThemeColors } from '@/hooks/useThemeColors';
-import { fontSize, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { SetLogger } from '@/components/workout/SetLogger';
 import { RestTimer } from '@/components/workout/RestTimer';
+import { WorkoutExerciseHero } from '@/components/workout/WorkoutExerciseHero';
+import { WorkoutProgressBar } from '@/components/workout/WorkoutProgressBar';
+import { CompletedSetsList } from '@/components/workout/CompletedSetsList';
 
 export default function ActiveWorkoutScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
@@ -59,6 +68,9 @@ export default function ActiveWorkoutScreen() {
 
   const currentExercise: ExerciseSession | undefined =
     session?.exerciseSessions[currentIndex];
+
+  const exerciseLabels =
+    session?.exerciseSessions.map((es) => es.exercise?.name ?? '') ?? [];
 
   const handleLogSet = async (
     weightGrams: number,
@@ -119,81 +131,93 @@ export default function ActiveWorkoutScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.header}>
-        <Pressable onPress={handleCancel} hitSlop={12}>
-          <Ionicons name="close" size={28} color={colors.text} />
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Pressable
+          onPress={handleCancel}
+          hitSlop={12}
+          style={[styles.iconBtn, { backgroundColor: colors.surface }]}>
+          <Ionicons name="close" size={22} color={colors.text} />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={[styles.dayName, { color: colors.text }]}>{session.dayName}</Text>
-          <Text style={[styles.progress, { color: colors.textSecondary }]}>
-            Ejercicio {currentIndex + 1} de {session.exerciseSessions.length}
+          <Text style={[styles.routineName, { color: colors.textSecondary }]}>
+            {session.routineName}
           </Text>
         </View>
-        <View style={{ width: 28 }} />
+        <View style={styles.headerSpacer} />
       </View>
+
+      <WorkoutProgressBar
+        currentIndex={currentIndex}
+        total={session.exerciseSessions.length}
+        labels={exerciseLabels}
+        onSelect={setCurrentIndex}
+      />
 
       <RestTimer />
 
-      {currentExercise && (
-        <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.exerciseName, { color: colors.text }]}>
-            {currentExercise.exercise?.name}
-          </Text>
+      {currentExercise?.exercise && (
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={styles.bodyContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <WorkoutExerciseHero exercise={currentExercise.exercise} />
 
-          {currentExercise.sets && currentExercise.sets.length > 0 && (
-            <View style={styles.setsList}>
-              {currentExercise.sets.map((set) => (
-                <View
-                  key={set.id}
-                  style={[styles.setRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={[styles.setNumber, { color: colors.textMuted }]}>
-                    Serie {set.setNumber}
-                  </Text>
-                  <Text style={[styles.setValue, { color: colors.text }]}>
-                    {formatWeightReps(set.weightGrams, set.reps, set.weightUnit)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
+          {currentExercise.exercise.description ? (
+            <Card style={styles.descriptionCard}>
+              <Text style={[styles.descriptionLabel, { color: colors.textSecondary }]}>
+                Indicaciones
+              </Text>
+              <Text style={[styles.descriptionText, { color: colors.text }]}>
+                {currentExercise.exercise.description}
+              </Text>
+            </Card>
+          ) : null}
 
-          <SetLogger
-            key={currentExercise.id}
-            lastPerformance={lastPerformance}
-            onLogSet={handleLogSet}
-          />
+          <CompletedSetsList sets={currentExercise.sets ?? []} />
 
-          <Input
-            label="Notas del ejercicio"
-            value={currentExercise.notes ?? ''}
-            onChangeText={(text) => {
-              updateExerciseSessionNotes(currentExercise.id, text);
-              setSession((prev) => {
-                if (!prev) return prev;
-                const updated = prev.exerciseSessions.map((es) =>
-                  es.id === currentExercise.id ? { ...es, notes: text } : es
-                );
-                return { ...prev, exerciseSessions: updated };
-              });
-            }}
-            placeholder="Opcional"
-          />
+          <Card style={styles.loggerCard}>
+            <SetLogger
+              key={currentExercise.id}
+              lastPerformance={lastPerformance}
+              onLogSet={handleLogSet}
+            />
+          </Card>
+
+          <Card style={styles.notesCard}>
+            <Input
+              label="Notas del ejercicio"
+              value={currentExercise.notes ?? ''}
+              onChangeText={(text) => {
+                updateExerciseSessionNotes(currentExercise.id, text);
+                setSession((prev) => {
+                  if (!prev) return prev;
+                  const updated = prev.exerciseSessions.map((es) =>
+                    es.id === currentExercise.id ? { ...es, notes: text } : es
+                  );
+                  return { ...prev, exerciseSessions: updated };
+                });
+              }}
+              placeholder="Técnica, sensaciones, ajustes…"
+            />
+          </Card>
+
+          <Card style={styles.notesCard}>
+            <Input
+              label="Notas del entrenamiento"
+              value={sessionNotes}
+              onChangeText={(text) => {
+                setSessionNotes(text);
+                updateSessionNotes(sessionIdNum, text);
+              }}
+              placeholder="¿Cómo te sentiste hoy?"
+            />
+          </Card>
         </ScrollView>
       )}
 
-      <View style={[styles.sessionNotes, { borderTopColor: colors.border }]}>
-        <Input
-          label="Notas del entrenamiento"
-          value={sessionNotes}
-          onChangeText={(text) => {
-            setSessionNotes(text);
-            updateSessionNotes(sessionIdNum, text);
-          }}
-          placeholder="¿Cómo te sentiste hoy?"
-        />
-      </View>
-
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+      <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
         <View style={styles.navRow}>
           <Button
             title="Anterior"
@@ -204,7 +228,7 @@ export default function ActiveWorkoutScreen() {
           />
           {currentIndex < session.exerciseSessions.length - 1 ? (
             <Button
-              title="Siguiente ejercicio"
+              title="Siguiente"
               onPress={() => setCurrentIndex((i) => i + 1)}
               style={styles.navBtn}
             />
@@ -227,37 +251,52 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-  },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  dayName: { fontSize: fontSize.lg, fontWeight: '700' },
-  progress: { fontSize: fontSize.sm, marginTop: 2 },
-  body: { flex: 1 },
-  exerciseName: {
-    fontSize: fontSize.xxl,
-    fontWeight: '800',
-    textAlign: 'center',
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: spacing.sm,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCenter: { flex: 1 },
+  dayName: { fontSize: fontSize.lg, fontWeight: '800' },
+  routineName: { fontSize: fontSize.sm, marginTop: 2 },
+  headerSpacer: { width: 40 },
+  body: { flex: 1 },
+  bodyContent: {
+    paddingBottom: spacing.lg,
+  },
+  descriptionCard: {
+    marginHorizontal: spacing.md,
     marginBottom: spacing.md,
   },
-  setsList: { paddingHorizontal: spacing.md, marginBottom: spacing.sm },
-  setRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderRadius: 8,
-    borderWidth: 1,
+  descriptionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: spacing.xs,
   },
-  setNumber: { fontSize: fontSize.sm },
-  setValue: { fontSize: fontSize.md, fontWeight: '600' },
-  sessionNotes: {
-    paddingHorizontal: spacing.md,
-    borderTopWidth: 1,
+  descriptionText: {
+    fontSize: fontSize.md,
+    lineHeight: 22,
+  },
+  loggerCard: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  notesCard: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
   },
   footer: {
     padding: spacing.md,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   navRow: { flexDirection: 'row', gap: spacing.sm },
   navBtn: { flex: 1 },

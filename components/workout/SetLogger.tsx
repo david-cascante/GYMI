@@ -73,10 +73,15 @@ export function SetLogger({ lastPerformance, onLogSet }: SetLoggerProps) {
 
   return (
     <View style={styles.container}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Registrar serie</Text>
+
       {lastPerformance && (
-        <Text style={[styles.lastTime, { color: colors.textSecondary }]}>
-          Última vez: {formatWeightReps(lastPerformance.weightGrams, lastPerformance.reps, lastUnit)}
-        </Text>
+        <View style={[styles.lastBox, { backgroundColor: colors.primaryMuted }]}>
+          <Text style={[styles.lastLabel, { color: colors.primary }]}>Última vez</Text>
+          <Text style={[styles.lastTime, { color: colors.text }]}>
+            {formatWeightReps(lastPerformance.weightGrams, lastPerformance.reps, lastUnit)}
+          </Text>
+        </View>
       )}
 
       <Text style={[styles.unitLabel, { color: colors.textSecondary }]}>
@@ -121,12 +126,28 @@ export function SetLogger({ lastPerformance, onLogSet }: SetLoggerProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: {},
+  sectionTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+  },
+  lastBox: {
+    borderRadius: 12,
     padding: spacing.md,
+    marginBottom: spacing.md,
+    alignItems: 'center',
+  },
+  lastLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   lastTime: {
-    fontSize: fontSize.md,
-    marginBottom: spacing.md,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
     textAlign: 'center',
   },
   unitLabel: {
